@@ -1,4 +1,4 @@
-# JRF 2026 Race Card · v36
+# JRF 2026 Race Card · v37
 
 Website statis dengan dua file:
 
@@ -26,6 +26,37 @@ Gunakan pengaturan Vercel berikut jika belum sesuai:
 | Install Command | Kosong |
 
 Tidak perlu upload ZIP sebagai halaman website atau mengganti namanya menjadi index.html. [Pengaturan build website statis di Vercel](https://vercel.com/docs/builds/configure-a-build).
+
+## Perbaikan upload foto · v37
+
+- Area upload sekarang menggunakan input file native yang langsung menerima tap, tetap bisa difokuskan melalui keyboard, dan memakai filter galeri `image/*`.
+- JPG/PNG dari galeri atau penyedia file Android tidak ditolak hanya karena tipe MIME kosong atau generik. File tetap harus berhasil dibaca sebagai gambar.
+- Pembacaan mencoba decoder gambar native terlebih dahulu, kemudian ImageBitmap, lalu FileReader bila diperlukan. Gagal pada satu jalur tidak langsung menghentikan upload.
+- Hasil foto diperkecil secara proporsional sampai maksimum 2560 piksel pada sisi terpanjang dan empat megapiksel. Foto pengganti, proses yang dibatalkan, serta canvas ekspor sementara dibersihkan setelah dipakai.
+- Indikator proses muncul saat foto dibaca. Tombol lanjut dan ekspor menunggu foto siap. Decoder yang tidak merespons memiliki timeout dan tombol upload kembali bisa dipakai. Pemilihan file yang sama bisa diulang.
+- Foto lama tetap tersedia bila penggantinya gagal. File kosong, format HEIC yang tidak didukung, dan pembacaan terlalu lama mendapat pesan yang sesuai.
+
+Foto diproses di browser perangkat; foto dan nama file tidak dikirim ke analytics.
+
+**HEIC:** dukungan tergantung browser. Safari 17 memperkenalkan dukungan HEIC; paket ini tidak menyertakan konverter HEIC untuk seluruh browser. Bila gagal, gunakan JPG/PNG atau screenshot foto. [Catatan WebKit tentang Safari 17](https://webkit.org/blog/14205/news-from-wwdc23-webkit-features-in-safari-17-beta/).
+
+**Jika galeri tetap tidak terbuka di browser dalam aplikasi:** buka URL yang sama di Safari pada iPhone atau Chrome pada Android. Website tidak bisa memperbaiki pemilih file yang dibatasi oleh aplikasi pembukanya.
+
+### Pengujian dan batas verifikasi
+
+Lulus 31 pengujian otomatis pada logic upload dan empat tracker, termasuk simulasi tipe file kosong, fallback decoder, HEIC native/unsupported, timeout, pembatalan, penggantian foto, pelepasan memori dan pemilihan ulang. Render sembilan kombinasi kategori/Virgin tetap identik dengan v36. Pembacaan JPG dan PNG aktual, pengecilan foto, serta ekspor PNG 1080 × 1920 juga diperiksa menggunakan renderer canvas native.
+
+Simulasi tersebut bukan pengujian langsung perangkat Android/iPhone. Browser otomatis tidak dapat dijalankan di lingkungan ini, sehingga sentuhan galeri, izin akses, perilaku penyedia cloud dan batas memori setiap HP masih perlu dicek pada perangkat setelah deployment.
+
+### Cek singkat setelah deploy
+
+1. Tunggu Vercel **Ready** lalu buka website baru di Chrome Android dan Safari iPhone. Tutup tab lama atau refresh sebelum tes.
+2. Masuk ke langkah foto. Tap area upload; pilih JPG/PNG dari penyimpanan lokal. Coba juga foto kamera berukuran besar dan posisi portrait.
+3. Batalkan pemilihan lalu coba lagi. Ganti foto, pilih file yang sama lagi, Clear, lalu tambahkan foto baru. Tombol harus bisa dipakai setelah berhasil maupun gagal.
+4. Lanjutkan ke Preview & Share, unduh PNG, lalu cek orientasi dan isi fotonya. Uji juga link dari aplikasi tempat pengunjung biasanya membuka website.
+5. Untuk HEIC, gunakan browser yang mendukungnya atau pilih salinan JPG/PNG. Bila sebuah foto di cloud belum tersedia lokal, simpan ke perangkat dahulu lalu pilih ulang.
+
+[Input file dan penggunaan opacity untuk kontrol native](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/file) · [Tipe MIME file dapat kosong](https://developer.mozilla.org/en-US/docs/Web/API/Blob/type).
 
 ## Konfigurasi analytics: stream baru terpasang
 
@@ -112,8 +143,8 @@ Jika DebugView kosong, periksa versi deployment, ekstensi pemblokir analytics, M
 
 ## Tampilan dan kategori
 
-Versi ini melanjutkan v35 dengan empat tracker yang sama. GA4 baru `G-PJ64F058FN` sudah terpasang dan hostname produksi dikembalikan ke `jakartarunningfestival2026.vercel.app`. Panel kategori 5K/HM tetap biru #013ECA termasuk varian Virgin; 10K/FM merah; 63.3K hitam/silver. Header statistik 5K/HM biru, 10K/FM merah. Kategori 63.3K tetap memakai dua baris statistik FM merah di atas dan HM biru di bawah, medali otomatis, serta input waktu dan pace terpisah.
+Versi ini melanjutkan v36 dengan perbaikan upload foto dan empat tracker yang sama. GA4 baru `G-PJ64F058FN` sudah terpasang dan hostname produksi dikembalikan ke `jakartarunningfestival2026.vercel.app`. Panel kategori 5K/HM tetap biru #013ECA termasuk varian Virgin; 10K/FM merah; 63.3K hitam/silver. Header statistik 5K/HM biru, 10K/FM merah. Kategori 63.3K tetap memakai dua baris statistik FM merah di atas dan HM biru di bawah, medali otomatis, serta input waktu dan pace terpisah.
 
-Seluruh aset dan logika render kartu dipertahankan. Preview lokal dapat dibuka langsung dari index.html; analytics sengaja tidak berjalan pada file lokal.
+Seluruh aset, warna kategori dan layout kartu dipertahankan. Canvas sementara dilepas setelah digunakan agar penggunaan memori lebih rendah. Preview lokal dapat dibuka langsung dari index.html; analytics sengaja tidak berjalan pada file lokal.
 
 Analytics dikonfigurasi untuk mengirim ke stream baru saat website dibuka di hostname produksi. Kode dan pengujian lokal dapat memastikan pemanggilan event dan perilaku ekspor. Penerimaan event di property GA4 perlu diverifikasi setelah deployment; paket ini tidak mengklaim bahwa pengaturan akun GA4 sudah diubah atau data live sudah diterima.
