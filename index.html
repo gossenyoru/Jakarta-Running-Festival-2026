@@ -9,7 +9,7 @@
   <!-- GA4 CONFIG: configured for the production website below. -->
   <script id="jrf-site-config">
 window.JRF_CONFIG = Object.freeze({
-  version: '32',
+  version: '34',
   environment: 'static',
   analytics: Object.freeze({
     measurementId: 'G-W6291G9928',
@@ -19,7 +19,7 @@ window.JRF_CONFIG = Object.freeze({
 });
   </script>
   <script id="jrf-google-analytics">
-// Same event names and direct Google tag pattern as the Pocari race-card site.
+// Four race-card actions. Automatic Google Analytics events are handled by the Google tag.
 (() => {
   'use strict';
   if (window.JRFAnalytics) return;
@@ -39,8 +39,9 @@ window.JRF_CONFIG = Object.freeze({
   const categories = new Set(['5K', '10K', 'HM', 'FM', '63K']);
   const events = new Set([
     'race_card_create', 'race_card_download', 'template_download',
-    'race_card_share', 'race_card_save'
+    'race_card_share'
   ]);
+  const exportMethods = new Set(['download', 'native_share', 'share_fallback']);
   const campaignKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
   let tagLoaded = false;
   let lastError = '';
@@ -60,7 +61,7 @@ window.JRF_CONFIG = Object.freeze({
     } catch { return ''; }
   }
 
-  // Only the two Pocari-style custom parameters leave the card builder.
+  // Send only the approved category, race format and export method.
   function track(eventName, parameters = {}) {
     if (!enabled || !events.has(eventName) || !categories.has(parameters?.race_category)) return false;
     try {
@@ -71,6 +72,7 @@ window.JRF_CONFIG = Object.freeze({
         page_location: cleanURL(location.href, true),
         page_referrer: cleanURL(document.referrer)
       };
+      if (exportMethods.has(parameters.export_method)) payload.export_method = parameters.export_method;
       if (debug) payload.debug_mode = true;
       window.gtag('event', eventName, payload);
       return true;
@@ -99,7 +101,7 @@ window.JRF_CONFIG = Object.freeze({
   };
   if (debug) settings.debug_mode = true;
   window.gtag('js', new Date());
-  // Like Pocari, config sends the initial page_view automatically.
+  // The single config call sends the initial page_view automatically.
   window.gtag('config', measurementId, settings);
   const googleTag = document.createElement('script');
   googleTag.id = 'jrf-google-tag';
@@ -548,10 +550,40 @@ function initJRFBuilder() {
     });
   }
 
+  // Keep the original category artwork and enforce the agreed category colors.
+  // This changes red pixels only; white lettering, FINISHER text and transparency stay intact.
+  function categoryArtwork(name, artwork) {
+    if (!/^category-(5k|hm)(-virgin)?$/.test(name)) return artwork;
+    const canvas = document.createElement('canvas');
+    canvas.width = artwork.naturalWidth;
+    canvas.height = artwork.naturalHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(artwork, 0, 0);
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = pixels.data;
+    for (let offset = 0; offset < data.length; offset += 4) {
+      const red = data[offset], green = data[offset + 1], blue = data[offset + 2];
+      if (!data[offset + 3] || red <= Math.max(green, blue)) continue;
+      const neutral = Math.min(green, blue);
+      const chroma = (red - neutral) / 254;
+      // JRF asset blue #013ECA, including darker halftone pixels and antialiased edges.
+      data[offset] = Math.round(neutral + chroma);
+      data[offset + 1] = Math.round(neutral + chroma * 62);
+      data[offset + 2] = Math.round(neutral + chroma * 202);
+    }
+    ctx.putImageData(pixels, 0, 0);
+    canvas.naturalWidth = canvas.width;
+    canvas.naturalHeight = canvas.height;
+    return canvas;
+  }
+
   async function loadAssets() {
-    const loaded = await Promise.allSettled(assetNames.map(name => name === 'pb-medal'
-      ? loadImage('assets/pb-medal.webp?v=2').catch(() => loadImage('assets/pb-medal.png?v=7'))
-      : loadImage(`assets/${name}.png?v=15`)));
+    const loaded = await Promise.allSettled(assetNames.map(async name => {
+      const artwork = await (name === 'pb-medal'
+        ? loadImage('assets/pb-medal.webp?v=2').catch(() => loadImage('assets/pb-medal.png?v=7'))
+        : loadImage(`assets/${name}.png?v=15`));
+      return categoryArtwork(name, artwork);
+    }));
     loaded.forEach((result, index) => {
       if (result.status === 'fulfilled') state.assets[assetNames[index]] = result.value;
       else console.error(result.reason);
@@ -916,14 +948,14 @@ function initJRFBuilder() {
             if (error.name === 'AbortError') return;
             throw error;
           }
-          window.JRFAnalytics?.track('race_card_share', parameters);
+          window.JRFAnalytics?.track('race_card_share', { ...parameters, export_method: 'native_share' });
           return;
         }
         downloadBlob(blob, outputName);
-        window.JRFAnalytics?.track('race_card_save', parameters);
+        window.JRFAnalytics?.track('race_card_download', { ...parameters, export_method: 'share_fallback' });
       } else {
         downloadBlob(blob, outputName);
-        window.JRFAnalytics?.track(templateOnly ? 'template_download' : 'race_card_download', parameters);
+        window.JRFAnalytics?.track(templateOnly ? 'template_download' : 'race_card_download', { ...parameters, export_method: 'download' });
       }
       showToast(templateOnly ? 'Template downloaded. Add your favorite photo anytime!' : 'Your race card has been downloaded. Ready to share!');
     } catch (error) {

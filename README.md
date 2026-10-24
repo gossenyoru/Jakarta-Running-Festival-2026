@@ -1,44 +1,33 @@
-# JRF Race Card · versi dua file (v32)
+# JRF 2026 Race Card · v34
 
-Repository ini hanya membutuhkan:
+Website statis dengan dua file:
 
 ```text
 index.html
 README.md
 ```
 
-Seluruh CSS, JavaScript, font dan PNG sudah tertanam di `index.html`. Tidak ada folder assets, package.json, npm, build, atau vercel.json yang perlu di-upload. File HTML sekitar 23 MB karena seluruh aset disertakan.
+Seluruh CSS, JavaScript, font dan gambar sudah tertanam di `index.html`. Tidak diperlukan folder assets, package.json, build, atau environment variable. PNG kartu dan template berukuran 1080 × 1920.
 
-## Upload ke GitHub
+## Replace di GitHub dan deploy
 
-1. Ekstrak ZIP ini terlebih dahulu.
-2. Upload **index.html dan README.md hasil ekstrak** ke root repository GitHub. ZIP ini berisi tepat dua file langsung pada level teratas.
-3. Pastikan `index.html` benar-benar file HTML, bukan ZIP yang diganti namanya. Jangan upload file ZIP sebagai halaman website.
-4. Untuk beralih dari paket versi 29, repository tujuan cukup berisi dua file di atas. Konfigurasi build lama seperti `package.json` dan `vercel.json` tidak dipakai pada versi ini.
+1. Ekstrak ZIP. Upload `index.html` dan `README.md` hasil ekstrak ke **root repository** untuk mengganti file lama dengan nama yang sama. File ZIP berisi tepat dua file itu, langsung pada level teratas.
+2. Commit ke branch produksi yang terhubung ke Vercel. Tunggu deployment berstatus **Ready**.
+3. Buka URL produksi dan lakukan hard refresh agar memakai versi terbaru.
 
-## Deploy ke Vercel tanpa build
-
-Import repository GitHub tersebut. Gunakan:
+Gunakan pengaturan Vercel berikut jika belum sesuai:
 
 | Pengaturan | Nilai |
 | --- | --- |
 | Framework Preset | Other |
-| Root Directory | `./` / root repository |
-| Build Command | Kosong; aktifkan Override lalu hapus command lama |
-| Output Directory | `.` (root repository), bukan `dist` |
-| Install Command | Kosong; hapus override install lama jika ada |
+| Root Directory | Root repository / `./` |
+| Build Command | Kosong; hapus override `npm run build` bila masih ada |
+| Output Directory | `.`; hapus pengaturan `dist` bila masih ada |
+| Install Command | Kosong |
 
-Klik Deploy atau Redeploy. Jika proyek Vercel sebelumnya memakai `npm run build` dan `dist`, ubah pengaturan tersebut sebelum Redeploy. Preview dari GitHub harus menampilkan website, bukan teks berawalan `PK`.
+Tidak perlu upload ZIP sebagai halaman website atau mengganti namanya menjadi index.html. [Pengaturan build website statis di Vercel](https://vercel.com/docs/builds/configure-a-build).
 
-[Dokumentasi Vercel: website statis dan Skip Build Step](https://vercel.com/docs/builds/configure-a-build).
-
-## Preview lokal
-
-Buka `index.html` di browser. Tombol Create Race Card berpindah ke `#builder` dalam file yang sama. Gambar dan font tidak memerlukan file terpisah. Untuk pengujian native share gunakan URL HTTPS dari Vercel; dukungannya mengikuti browser/perangkat.
-
-## Analytics: pola yang sama dengan Pocari
-
-GA4 sudah terisi dan aktif untuk domain produksi:
+## Konfigurasi analytics yang dipakai
 
 ```js
 measurementId: 'G-W6291G9928',
@@ -46,46 +35,85 @@ productionHost: 'jakartarunningfestival2026.vercel.app',
 enabled: true
 ```
 
-Versi 32 memakai pola Google tag langsung dari implementasi Pocari: tag di bagian head, pageview otomatis dari `gtag('config', ...)`, serta lima nama custom event yang sama. Tidak ada pageview manual atau event funnel versi 31. ID, hostname, tampilan, input, aset dan rendering race card tetap dipertahankan.
+GA4 Measurement ID dan hostname dipertahankan. Google tag hanya dipasang sekali di bagian head. `gtag('config', ...)` mengatur pageview awal secara otomatis; tidak ada pageview manual kedua atau Google Tag Manager tambahan.
 
-| Event | Dikirim ketika |
+Tracking aktif ketika halaman memakai HTTP/HTTPS dan hostname produksi cocok. File lokal, localhost dan preview deployment dengan hostname berbeda tidak mengirim analytics. Jika suatu hari memakai domain lain, sesuaikan `productionHost` di bagian awal HTML.
+
+## Tepat empat custom event
+
+| Tujuan | Nama event | Kapan dihitung |
+| --- | --- | --- |
+| Mulai membuat race card | `race_card_create` | Masuk builder dari landing, atau membuka `#builder` langsung. |
+| Share card | `race_card_share` | Native share selesai tanpa dibatalkan. |
+| Download card | `race_card_download` | PNG berhasil dibuat dan browser diminta memulai unduhan. Termasuk fallback tombol Share pada perangkat tanpa dukungan share file. |
+| Download template only | `template_download` | PNG template transparan berhasil dibuat dan browser diminta memulai unduhan. |
+
+Tidak ada custom event untuk langkah wizard, review, preview, atau save terpisah. Masuk kembali ke builder dari landing menghitung aksi create baru. Pemanggilan router berulang saat masih berada di builder tidak menghitung create tambahan. Klik ganda ketika file sedang dibuat dicegah oleh pengunci ekspor.
+
+Share yang dibatalkan, kegagalan pembuatan PNG, dan preview tidak dihitung sebagai hasil share/download. Share yang berubah menjadi unduhan hanya menghasilkan `race_card_download`, tanpa `race_card_share`. Browser memberi konfirmasi selesainya native share; hasil itu tidak membuktikan posting sudah terbit di Instagram. Unduhan dicatat ketika browser diminta mengunduh, karena website tidak bisa memeriksa file sudah tersimpan ke disk.
+
+Custom parameter yang diizinkan:
+
+| Parameter | Nilai |
 | --- | --- |
-| `page_view` | Halaman website dimuat; otomatis oleh Google tag. |
-| `race_card_create` | Masuk ke builder dari landing, atau membuka `#builder` langsung. Masuk kembali dari landing menghitung aksi baru; pemanggilan router berulang pada tampilan yang sama tidak menambah event. |
-| `race_card_download` | PNG race card berhasil dibuat dan browser diminta memulai unduhan. |
-| `template_download` | PNG template transparan berhasil dibuat dan browser diminta memulai unduhan. |
-| `race_card_share` | Native share selesai tanpa dibatalkan. |
-| `race_card_save` | Browser tidak mendukung share file, lalu kartu diunduh sebagai fallback tombol Share. |
+| `race_format` | `on-ground` |
+| `race_category` | `5K`, `10K`, `HM`, `FM`, `63K` |
+| `export_method` | `download`, `native_share`, `share_fallback`; hanya untuk aksi ekspor |
 
-Seperti Pocari, semua custom event menggunakan `race_format` dan `race_category`. JRF mengirim `race_format: 'on-ground'`; kategori dikirim sebagai `5K`, `10K`, `HM`, `FM`, atau `63K` (label di website tetap 63.3K). Tidak ada event ganda `race_card_create_start` atau `race_card_template_download` di versi ini. Data historis dari nama event lama tetap mengikuti nama lamanya di GA4.
+Kategori 63.3K di website dikirim sebagai `63K` untuk konsistensi data. Nama pelari, nama file, foto, finish time, pace, detak jantung, klub, dan username tidak dikirim sebagai custom parameter. URL halaman dan referrer dibersihkan; hanya query UTM kampanye yang diizinkan dalam URL halaman.
 
-### Pengaturan GA4 setelah replace
+## Pengaturan yang dilakukan di GA4
 
-1. Buka **Admin → Data collection and modification → Data streams → stream Web JRF**. Pastikan Measurement ID-nya `G-W6291G9928`.
-2. Aktifkan **Enhanced measurement** untuk pengukuran otomatis seperti `scroll`, sama seperti laporan Pocari. Bila sebelumnya dimatikan mengikuti README versi 31, ubah sekarang.
-3. Klik roda gigi Enhanced measurement. Pada **Page views → Show advanced settings**, matikan **Page changes based on browser history events** agar pindah `#builder` tidak dihitung sebagai pageview tambahan. Pageview saat halaman dimuat tetap otomatis. Pengukuran `scroll` dapat tetap aktif; `Form interactions` bersifat opsional dan hanya berlaku bila GA mendeteksi elemen form.
-4. Pada **Admin → Data display → Custom definitions**, tambahkan custom dimensions dengan scope **Event** untuk `race_format` dan `race_category` jika ingin membuat laporan berdasarkan format/kategori. Pendaftaran dimension tidak diperlukan hanya untuk menerima dan menghitung nama event.
-5. Opsional: tandai `race_card_download` dan `race_card_share` sebagai key events pada **Admin → Data display → Events → Recent events** setelah namanya muncul.
+Kode tidak mengubah pengaturan akun GA4. Gunakan property **JRF 2026** yang sudah ada, lalu:
 
-Kode website tidak bisa mengubah kartu Home **Suggested for you** secara langsung; GA4 memilih kartu itu berdasarkan aktivitas penggunaan Analytics. Daftar custom event dan penerimaan datanya tetap perlu diperiksa melalui Realtime/DebugView.
+1. Buka **Admin → Data collection and modification → Data streams → stream Web JRF**. Pastikan Measurement ID adalah `G-W6291G9928` dan URL website adalah `https://jakartarunningfestival2026.vercel.app`.
+2. Untuk laporan yang berfokus pada empat aksi ini, **matikan Enhanced measurement** pada stream. Ini menghentikan pengukuran tambahan seperti scroll/form otomatis. Custom event di atas tetap dikirim oleh kode website. Event bawaan Google seperti `page_view`, `session_start`, `first_visit`, atau `user_engagement` masih dapat muncul; empat event yang dibatasi di sini adalah custom event aplikasi.
+3. Tidak perlu membuat stream baru, ID baru, Google tag kedua, atau matching condition di **Custom configurations**. Event sudah dikirim langsung dari website. Panel Custom configurations dapat tetap kosong.
+4. Opsional: sesudah datanya diterima, tandai empat nama tersebut sebagai **key events** melalui **Admin → Data display → Events → Recent events**. Penandaan ini tidak diperlukan untuk menghitung Total users per event.
 
-### Verifikasi setelah deployment
+[Jenis event dan pemasangan Google tag](https://developers.google.com/analytics/devguides/collection/ga4/events) · [Enhanced measurement](https://support.google.com/analytics/answer/9216061?hl=en).
 
-1. Replace `index.html` dan `README.md` di root repository GitHub, commit, lalu tunggu deployment produksi Vercel berstatus **Ready**. Tidak diperlukan environment variable, build step, atau tag Google kedua.
-2. Buka [URL debug JRF](https://jakartarunningfestival2026.vercel.app/?ga_debug=1#builder) di browser. Di GA4 property JRF 2026, buka **Admin → Data display → DebugView**.
-3. Masuk builder, lengkapi data, lalu unduh template atau kartu. Cari `race_card_create`, `template_download`, atau `race_card_download`. Uji share jika perangkat mendukungnya.
-4. Untuk pengunjung biasa, gunakan URL tanpa `ga_debug=1`. Periksa **Reports → Realtime → Event count by Event name**. Daftar **Recent events** dan laporan biasa mengikuti waktu pemrosesan GA4.
+## Laporan jumlah pengguna untuk empat aksi
 
-Tracking hanya berjalan di hostname produksi tersebut melalui HTTP/HTTPS. File lokal, localhost, dan deployment preview dengan hostname lain tetap tidak mengirim event. Jika domain produksi berubah, sesuaikan `productionHost`. ID dan hostname ini tersimpan langsung dalam HTML, bukan environment variable Vercel.
+**Total users** menunjukkan jumlah pengguna unik menurut identifikasi GA4 pada rentang tanggal yang dipilih. **Event count** menunjukkan jumlah aksi. Contoh: satu pengguna mengunduh dua kali menghasilkan 1 Total user dan 2 event untuk download. Identifikasi pengguna mengikuti browser/perangkat dan cookie; tanpa sistem login, satu orang di perangkat berbeda dapat terhitung terpisah.
 
-Preview kartu, ekspor yang gagal, klik berulang saat ekspor sedang diproses, dan native share yang dibatalkan tidak menghasilkan custom event sukses. Status `window.JRFAnalytics.status.tagLoaded` hanya menandakan Google tag termuat, bukan bukti bahwa GA4 telah menerima event.
+Untuk membuat satu tabel yang hanya memuat empat tracker:
 
-Custom event tidak mengirim nama pelari, nama file, foto, waktu finish, pace, detak jantung, klub, atau username Instagram. Parameter selain format/kategori tidak diteruskan. URL halaman dan referrer dibersihkan; hanya parameter UTM kampanye yang diizinkan dalam URL halaman.
+1. Buka **Explore → Free form** di property JRF 2026. Beri nama **JRF · 4 aksi race card**.
+2. Pada **Dimensions**, klik **+**, pilih **Event name**, lalu **Import**.
+3. Pada **Metrics**, klik **+**, pilih **Total users** dan **Event count**, lalu **Import**.
+4. Pada **Tab settings**, isi **Rows → Event name** dan **Values → Total users, Event count**.
+5. Pada **Filters**, pilih **Event name → matches regex** dan gunakan pola:
 
-[Google tag dan custom events](https://developers.google.com/analytics/devguides/collection/ga4/events) · [Pageview otomatis](https://developers.google.com/analytics/devguides/collection/ga4/views) · [Enhanced measurement](https://support.google.com/analytics/answer/9216061?hl=en) · [DebugView](https://support.google.com/analytics/answer/7201382?hl=en).
+```text
+^(race_card_create|race_card_share|race_card_download|template_download)$
+```
 
-## Fitur versi terakhir
+6. Pilih rentang tanggal yang mencakup waktu deployment dan pengujian. Tabel akan memuat nama event yang sudah diterima dalam rentang itu; event tanpa data dapat belum tampil sebagai baris.
 
-5K, 10K, HM, FM dan 63.3K · JRF tetap tersedia. Header statistik 10K/FM merah; 5K/HM biru. Kategori 63.3K memakai dua baris FM/HM dengan input waktu dan pace terpisah serta medali otomatis tanpa toggle PB. Seluruh aset dan layout tetap berasal dari versi terakhir. Kartu dan template diekspor sebagai PNG 1080 × 1920.
+Pengguna yang sama dapat melakukan beberapa jenis aksi. Jangan menjumlahkan empat baris Total users sebagai total pengunjung unik website. Data historis dari event versi lama tetap tersimpan; filter di atas membatasi tabel ke empat nama yang digunakan sekarang.
 
-ID dan hostname sudah terpasang. Penerimaan event ke property GA4 tetap perlu diperiksa di Realtime/DebugView setelah file ini dideploy; pengujian lokal tidak mengirim event ke Google.
+Custom dimensions tidak perlu dibuat hanya untuk menghitung pengguna per nama event. Jika nanti ingin breakdown kategori, tambahkan dimension scope **Event** dengan event parameter `race_category`; `export_method` dapat ditambahkan untuk memisahkan unduhan biasa dan fallback Share.
+
+[Events report dan definisi metrik](https://support.google.com/analytics/answer/12926615?hl=en) · [Free-form exploration](https://support.google.com/analytics/answer/9327972?hl=en).
+
+## Memastikan GA4 menerima event
+
+1. Tunggu deployment Vercel terbaru **Ready**.
+2. Di GA4, buka **Admin → Data display → DebugView**.
+3. Di tab browser lain, buka [URL debug JRF](https://jakartarunningfestival2026.vercel.app/?ga_debug=1#builder). Saat builder dibuka, cari `race_card_create` di DebugView.
+4. Lengkapi data dan unduh template atau kartu. Cari `template_download` atau `race_card_download`. Uji share pada perangkat yang mendukungnya; pembatalan tidak menghasilkan event share sukses.
+5. Klik nama event di DebugView untuk melihat parameter. Jika lebih dari satu perangkat terdeteksi, pilih perangkat yang digunakan melalui **DEBUG DEVICE**.
+6. Untuk tes biasa, buka URL tanpa `ga_debug=1`, lalu lihat **Reports → Realtime → Event count by Event name**. Laporan Events/Explore mengikuti waktu pemrosesan GA4; gunakan DebugView untuk pengecekan langsung.
+
+Jika DebugView kosong, periksa versi deployment, ekstensi pemblokir analytics, Measurement ID, hostname yang sedang dibuka, dan pilihan property. Status `window.JRFAnalytics.status.tagLoaded` hanya menandakan file Google tag termuat, bukan bukti penerimaan event oleh GA4.
+
+[DebugView Google](https://support.google.com/analytics/answer/7201382?hl=en) · [Pengecekan implementasi](https://developers.google.com/analytics/devguides/collection/ga4/troubleshoot).
+
+## Tampilan dan kategori
+
+Versi ini melanjutkan v33. Panel kategori 5K/HM tetap biru #013ECA termasuk varian Virgin; 10K/FM merah; 63.3K hitam/silver. Header statistik 5K/HM biru, 10K/FM merah. Kategori 63.3K tetap memakai dua baris statistik FM merah di atas dan HM biru di bawah, medali otomatis, serta input waktu dan pace terpisah.
+
+Seluruh aset dan logika render kartu dipertahankan. Preview lokal dapat dibuka langsung dari index.html; analytics sengaja tidak berjalan pada file lokal.
+
+Kode dan pengujian lokal dapat memastikan pemanggilan event dan perilaku ekspor. Penerimaan event di property GA4 perlu diverifikasi setelah deployment; paket ini tidak mengklaim bahwa pengaturan akun GA4 sudah diubah atau data live sudah diterima.
