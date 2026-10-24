@@ -1,4 +1,4 @@
-# JRF 2026 Race Card · v34
+# JRF 2026 Race Card · v36
 
 Website statis dengan dua file:
 
@@ -27,15 +27,15 @@ Gunakan pengaturan Vercel berikut jika belum sesuai:
 
 Tidak perlu upload ZIP sebagai halaman website atau mengganti namanya menjadi index.html. [Pengaturan build website statis di Vercel](https://vercel.com/docs/builds/configure-a-build).
 
-## Konfigurasi analytics yang dipakai
+## Konfigurasi analytics: stream baru terpasang
 
 ```js
-measurementId: 'G-W6291G9928',
+measurementId: 'G-PJ64F058FN',
 productionHost: 'jakartarunningfestival2026.vercel.app',
 enabled: true
 ```
 
-GA4 Measurement ID dan hostname dipertahankan. Google tag hanya dipasang sekali di bagian head. `gtag('config', ...)` mengatur pageview awal secara otomatis; tidak ada pageview manual kedua atau Google Tag Manager tambahan.
+Measurement ID stream baru `G-PJ64F058FN` dan hostname produksi `jakartarunningfestival2026.vercel.app` sudah terisi. Replace index.html di GitHub, commit, lalu tunggu deployment Vercel selesai. Tidak perlu menambah snippet Google tag lain atau environment variable. Google tag hanya dipasang sekali di bagian head. `gtag('config', ...)` mengatur pageview awal secara otomatis; tidak ada pageview manual kedua atau Google Tag Manager tambahan.
 
 Tracking aktif ketika halaman memakai HTTP/HTTPS dan hostname produksi cocok. File lokal, localhost dan preview deployment dengan hostname berbeda tidak mengirim analytics. Jika suatu hari memakai domain lain, sesuaikan `productionHost` di bagian awal HTML.
 
@@ -64,11 +64,11 @@ Kategori 63.3K di website dikirim sebagai `63K` untuk konsistensi data. Nama pel
 
 ## Pengaturan yang dilakukan di GA4
 
-Kode tidak mengubah pengaturan akun GA4. Gunakan property **JRF 2026** yang sudah ada, lalu:
+Kode tidak mengubah pengaturan akun GA4. Setelah membuat stream Web baru:
 
-1. Buka **Admin → Data collection and modification → Data streams → stream Web JRF**. Pastikan Measurement ID adalah `G-W6291G9928` dan URL website adalah `https://jakartarunningfestival2026.vercel.app`.
+1. Buka stream Web baru di **Admin → Data collection and modification → Data streams**. Pastikan Measurement ID-nya `G-PJ64F058FN` dan URL website `https://jakartarunningfestival2026.vercel.app`. ID dan hostname tersebut sudah diisi di index.html. Upload ulang file dan tunggu deployment selesai.
 2. Untuk laporan yang berfokus pada empat aksi ini, **matikan Enhanced measurement** pada stream. Ini menghentikan pengukuran tambahan seperti scroll/form otomatis. Custom event di atas tetap dikirim oleh kode website. Event bawaan Google seperti `page_view`, `session_start`, `first_visit`, atau `user_engagement` masih dapat muncul; empat event yang dibatasi di sini adalah custom event aplikasi.
-3. Tidak perlu membuat stream baru, ID baru, Google tag kedua, atau matching condition di **Custom configurations**. Event sudah dikirim langsung dari website. Panel Custom configurations dapat tetap kosong.
+3. Gunakan hanya satu Google tag untuk ID stream baru di file ini; tidak perlu menambah tag kedua atau matching condition di **Custom configurations**. Empat event sudah dikirim langsung dari website ketika konfigurasi aktif. Panel Custom configurations dapat tetap kosong.
 4. Opsional: sesudah datanya diterima, tandai empat nama tersebut sebagai **key events** melalui **Admin → Data display → Events → Recent events**. Penandaan ini tidak diperlukan untuk menghitung Total users per event.
 
 [Jenis event dan pemasangan Google tag](https://developers.google.com/analytics/devguides/collection/ga4/events) · [Enhanced measurement](https://support.google.com/analytics/answer/9216061?hl=en).
@@ -101,7 +101,7 @@ Custom dimensions tidak perlu dibuat hanya untuk menghitung pengguna per nama ev
 
 1. Tunggu deployment Vercel terbaru **Ready**.
 2. Di GA4, buka **Admin → Data display → DebugView**.
-3. Di tab browser lain, buka [URL debug JRF](https://jakartarunningfestival2026.vercel.app/?ga_debug=1#builder). Saat builder dibuka, cari `race_card_create` di DebugView.
+3. Di tab browser lain, buka [URL debug JRF](https://jakartarunningfestival2026.vercel.app/?ga_debug=1#builder). Saat builder dibuka, cari `race_card_create` di DebugView pada property yang memiliki stream baru `G-PJ64F058FN`.
 4. Lengkapi data dan unduh template atau kartu. Cari `template_download` atau `race_card_download`. Uji share pada perangkat yang mendukungnya; pembatalan tidak menghasilkan event share sukses.
 5. Klik nama event di DebugView untuk melihat parameter. Jika lebih dari satu perangkat terdeteksi, pilih perangkat yang digunakan melalui **DEBUG DEVICE**.
 6. Untuk tes biasa, buka URL tanpa `ga_debug=1`, lalu lihat **Reports → Realtime → Event count by Event name**. Laporan Events/Explore mengikuti waktu pemrosesan GA4; gunakan DebugView untuk pengecekan langsung.
@@ -112,8 +112,8 @@ Jika DebugView kosong, periksa versi deployment, ekstensi pemblokir analytics, M
 
 ## Tampilan dan kategori
 
-Versi ini melanjutkan v33. Panel kategori 5K/HM tetap biru #013ECA termasuk varian Virgin; 10K/FM merah; 63.3K hitam/silver. Header statistik 5K/HM biru, 10K/FM merah. Kategori 63.3K tetap memakai dua baris statistik FM merah di atas dan HM biru di bawah, medali otomatis, serta input waktu dan pace terpisah.
+Versi ini melanjutkan v35 dengan empat tracker yang sama. GA4 baru `G-PJ64F058FN` sudah terpasang dan hostname produksi dikembalikan ke `jakartarunningfestival2026.vercel.app`. Panel kategori 5K/HM tetap biru #013ECA termasuk varian Virgin; 10K/FM merah; 63.3K hitam/silver. Header statistik 5K/HM biru, 10K/FM merah. Kategori 63.3K tetap memakai dua baris statistik FM merah di atas dan HM biru di bawah, medali otomatis, serta input waktu dan pace terpisah.
 
 Seluruh aset dan logika render kartu dipertahankan. Preview lokal dapat dibuka langsung dari index.html; analytics sengaja tidak berjalan pada file lokal.
 
-Kode dan pengujian lokal dapat memastikan pemanggilan event dan perilaku ekspor. Penerimaan event di property GA4 perlu diverifikasi setelah deployment; paket ini tidak mengklaim bahwa pengaturan akun GA4 sudah diubah atau data live sudah diterima.
+Analytics dikonfigurasi untuk mengirim ke stream baru saat website dibuka di hostname produksi. Kode dan pengujian lokal dapat memastikan pemanggilan event dan perilaku ekspor. Penerimaan event di property GA4 perlu diverifikasi setelah deployment; paket ini tidak mengklaim bahwa pengaturan akun GA4 sudah diubah atau data live sudah diterima.
